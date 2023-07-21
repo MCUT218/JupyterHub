@@ -17,9 +17,9 @@ docker-compose（2.3.0）
 nvidia-docker2（2.13.0）    
 
 ## 初始步驟
-參考https://cschranz.medium.com/set-up-your-own-gpu-based-jupyterlab-e0d45fcacf43
-在主機上創建一個新使用者（例如 jupyterhub），用於管理 JupyterHub 和存放 Hub 的配置文件  
-將您的使用者加入 docker 群組，以便在不使用 sudo 的情況下執行 docker 命令  
+參考https://cschranz.medium.com/set-up-your-own-gpu-based-jupyterlab-e0d45fcacf43  
+在主機上創建一個新使用者（例如 jupyterhub），用於管理 JupyterHub 和存放 Hub 的配置文件    
+將您的使用者加入 docker 群組，以便在不使用 sudo 的情況下執行 docker 命令   
 通過運行 docker run --gpus all nvidia/cuda:11.6.2-cudnn8-runtime-ubuntu20.04 nvidia-smi 測試 nvidia-docker 中的 GPU 是否工作  
 在主機上配置必要的共享資料夾掛載，例如 /home/jh_users/ 用於存放使用者的家目錄（我們將其與 UNIX 主機使用者分開），以及 /mnt/sdb2/ 用於共享資料（數據集、模型等）  
 
