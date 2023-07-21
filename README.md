@@ -34,7 +34,7 @@ nvidia-docker2（2.6.0）
 
 ## 運行 Hub
 首次運行時，轉到根目錄並運行：  
-1.docker-compose up -d (可選的 -d 參數將 Hub 作為服務運行)
+1.docker-compose up -d (可選的 -d 參數將 Hub 作為服務運行)  
 2.第一次運行此命令時，將構建 jupyterhub 映像並在 <host-ip>:8000 上運行服務器。默認登錄帳號為：jhadmin，密碼在 ./jupyterhub/Dockerfile 中設置。  
 ##警告：一旦您第一次運行容器，或者每次更新配置後，請立即將管理員密碼更改為安全密碼！要這樣做，運行 docker exec -it jupyterhub-container /bin/bash，然後運行 passwd jhadmin 選擇新密碼。
 
