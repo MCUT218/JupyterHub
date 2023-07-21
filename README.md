@@ -1,24 +1,22 @@
 # JupyterHubGPU
-一個帶有 JupyterLab、Tensorflow 和 GPU 支援的 Docker 化 JupyterHub 實例  
+一個帶有 JupyterLab、Tensorflow 和 Nvidia GPU 支援的 Docker容器  
 
 本說明檔將涵蓋複製所提供的配置所需的步驟，以及在需要時如何進一步自訂配置。  
 
-此環境並不適用於生產，因為沒有強大的安全措施 - 請自行承擔使用風險。  
 
 ## 功能
 多用戶 JupyterLab 介面，支援 Tensorflow 和 GPU  
 Hub 在 Docker 容器中運行  
-每個使用者的筆記本（Lab）都在專用的 Docker 容器中啟動  
+每個使用者的筆記本（JupyterLab）都在獨立的 Docker 容器中啟動  
 共享資料夾（例如使用者的家目錄和資料夾）被掛載到使用者的 Docker 容器，以保持資料的持久性  
-預先需求
-這些套件必須安裝在主機上（目前運行 Ubuntu 20.04 LTS），套件版本表示目前已安裝的版本：  
 
+## 軟體配置
 Nvidia Cuda 驅動程式（目前為 nvidia-driver-535，由 Ubuntu "Additional Drivers" 應用程式安裝）  
 docker（24.0.2）   
 docker-compose（2.3.0）    
 nvidia-docker2（2.13.0）    
 
-## 初步步驟
+## 初始步驟
 在主機上創建一個新使用者（例如 jupyterhub），用於管理 JupyterHub 和存放 Hub 的配置文件  
 將您的使用者加入 docker 群組，以便在不使用 sudo 的情況下執行 docker 命令  
 通過運行 docker run --rm --gpus all nvidia/cuda:10.1-base nvidia-smi 測試 nvidia-docker 中的 GPU 是否工作  
@@ -26,8 +24,10 @@ nvidia-docker2（2.13.0）
 
 ## 運行 JupyterHub
 首次運行時，轉到根目錄並運行：  
-1.docker-compose up -d (可選的 -d 參數將 Hub 作為服務運行)  
-2.第一次運行此命令時，將構建 jupyterhub 映像並在 <host-ip>:8000 上運行服務器。默認登錄帳號為：jhadmin，密碼在 ./jupyterhub/Dockerfile 中設置。  
+docker-compose up -d (可選的 -d 參數將 Hub 作為服務運行)  
+第一次運行此命令時，將構建 jupyterhub 映像並在 <host-ip>:8000 上運行服務器。默認登錄帳號為：jhadmin，密碼在 ./jupyterhub/Dockerfile 中設置。  
+
+
 ##警告：一旦您第一次運行容器，或者每次更新配置後，請立即將管理員密碼更改為安全密碼！要這樣做，運行 docker exec -it jupyterhub-container /bin/bash，然後運行 passwd jhadmin 選擇新密碼。
 
 下次可以使用 docker-compose start 和 docker-compose stop 啟動/停止容器（例如在更新 jupyterhub_config.py 時）。
