@@ -44,11 +44,10 @@ docker-compose up -d
 要停止並移除容器，請使用 docker-compose down。
 
 ## 添加新使用者
-1.在主機上運行 docker exec -it jupyterhub-container /bin/bash。
-2.運行 adduser <username>。
-3.運行 passwd <username> 並設置密碼。
-(option)在 Web 介面中以管理員身份登錄，在管理員菜單（頂部欄）中添加新使用者 <username>。
-添加新的自定義 Docker 映像
+1.在主機上運行 docker exec -it jupyterhub-container /bin/bash  
+2.運行 adduser <username>  
+3.運行 passwd <username> 並設置密碼  
+(option)在 Web 介面中以管理員身份登錄，在管理員菜單（頂部欄）中添加新使用者 <username>  
 
 
 ## 使用者環境
