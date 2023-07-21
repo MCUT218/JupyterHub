@@ -44,12 +44,12 @@ docker-compose up -d
 要停止並移除容器，請使用 docker-compose down。
 
 ## 添加新使用者
-在主機上運行 docker exec -it jupyterhub-container /bin/bash。
-運行 adduser <username>。
-運行 passwd <username> 並設置密碼。
-在 Web 介面中以管理員身份登錄，在管理員菜單（頂部欄）中添加新使用者 <username>。
+1.在主機上運行 docker exec -it jupyterhub-container /bin/bash。
+2.運行 adduser <username>。
+3.運行 passwd <username> 並設置密碼。
+(option)在 Web 介面中以管理員身份登錄，在管理員菜單（頂部欄）中添加新使用者 <username>。
 添加新的自定義 Docker 映像
-要添加新的映像，例如凍結特定版本的 tensorflow，只需複製 tensorflow-notebook 的結構，然後相應編輯 Dockerfile。然後，像在上一節中所做的那樣構建映像並將映像添加到 jupyterhub_config.py 中的列表中。
+
 
 ## 使用者環境
 使用者可以使用 JupyterLab 的實例，並擁有以下文件夾結構：
