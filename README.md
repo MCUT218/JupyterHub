@@ -1,113 +1,109 @@
 # JupyterHubGPU
- A Dockerized JupyterHub instance with JupyterLab, Tensorflow and GPU support
- 
- This readme covers the necessary steps to replicate the provided configuration and information on how to further customise the configuration when needed.
- 
- THIS ENVIRONMENT IS NOT FOR PRODUCTION AS NO STRONG SECURITY MEASURES ARE IN PLACE - USE IT AT YOUR OWN RISK.
- 
- ## Features
- - Multi-user JupyterLab interface with Tensorflow and GPU support
- - The hub is run in a docker container
- - Each user notebook (Lab) is spawned in a dedicated docker container
- - Shared folder (e.g. Users homes and Data folders) are mounted in the user dockers for data persistance
- 
- ## Pre-Requisites
- These packages has to be installed in the host machine (Currently running Ubuntu 20.04 LTS) package versions indicates currently installed versions:
- - Nvidia Cuda drivers (Currently: nvidia-driver-470 installed by Ubuntu "Additional Drivers" app)
- - docker (20.10.7)
- - docker-compose (1.25.0)
- - nvidia-docker2 (2.6.0)
- 
- ## Preliminary steps
- 1. Create a new user (e.g. ``` jupyterhub ```) in the host machine for managing jupyterhub and hosting the configuration files for the hub
- 2. Add your user to ```docker``` group to enable docker commands without ```sudo```
- 3. Test that GPUs are working in nvidia-docker by running ```docker run --rm --gpus all nvidia/cuda:10.1-base nvidia-smi ```
- 4. Configure necessary shared folder mounts on the host machine,  - e.g. `/home/jh_users/` for hosting the user home folders (we keep them separated from UNIX host users) and `/mnt/sdb2/` for the shared data (datasets, models, etc.).
- 
- ## Configure the setup environment
- The environment is built as a docker-compose app. Here we show the steps for replicating the configuration.
- Clone is repo or create a folder that will contain the setup environment (e.g. `/home/jupyterhub/JupyterHubGPU/`, indicated as the root from now on)
- ### Configuring the Hub Image
- - `./jupyterhub/` contains hub configuration and image.
- - `./jupyterhub/Dockerfile` defines the hub image. There we create the default admin `jhadmin` with a deafault password. This user will be present only on the hub container and can add new users from the hub control panel. We also set the WORKDIR to be `/srv/jupyterhub` and the default command to be the `jupyterhub` command that runs the hub server.
- - `./jupyterhub/jupyterhub_config.py` describes the configuration of the jupyterhub server application. Details are provided in the following sections.
- 
- Building of this image will be done by the docker-compose, so we don't need to build it manually now.
- 
- ### Building base user images
- User docker images are based on the fork [docker-stacks](https://github.com/edoardogiacomello/docker-stacks "docker-stacks"), customized to work with tensorflow and GPU support. 
- 
- The `tensorflow-notebook` depends on `scipy-notebook` -> `minimal-notebook` -> `base-notebook`, so we need to rebuild the tree to add GPU support.
- 
-1.  Pull the [docker-stacks](https://github.com/edoardogiacomello/docker-stacks "docker-stacks") inside `./docker-stacks`
-2. We need to add Cuda support to the base image. Since all the notebook images are based on `base-notebook`, open `./docker-stacks/base-notebook/Dockerfile` and edit the `ROOT_CONTAINER` argument as `ARG ROOT_CONTAINER=nvidia/cuda:11.4.2-cudnn8-runtime-ubuntu20.04`. The cuda image has to match the ubuntu distribution of `base-notebook` (Ubuntu Focal at the time of writing) and the requirements of `tensorflow` and your GPU.
-3. Change the owner from `jupyter` to `jupytergpu` in `scipy-notebook`, `minimal-notebook`, and `base-notebook` Dockerfiles to avoid naming collisions with the official images
-4. Build the tree of images in order (It will take some time):
-	- `cd ./docker-stacks/base-notebook/`
-	- `docker build -t "jupytergpu/base-notebook" .`
-	- `cd ../minimal-notebook/`
-	- `docker build -t "jupytergpu/minimal-notebook" .`
-	- `cd ../scipy-notebook/`
-	- `docker build -t "jupytergpu/scipy-notebook" .`
-	- `cd ../tensorflow-notebook/`
-	- `docker build -t "jupytergpu/tensorflow-notebook" .`
+JupyterHubGPU
+一個帶有 JupyterLab、Tensorflow 和 GPU 支援的 Docker 化 JupyterHub 實例
 
-### Configuring Docker Environment with Docker-Compose
-We use docker-compose to setup docker and the networking between containers.
+本說明檔將涵蓋複製所提供的配置所需的步驟，以及在需要時如何進一步自訂配置。
 
-1. Create a `.env` file in the root folder, along with the `docker-stacks` and `jupyterhub` folders. Write the project name `COMPOSE_PROJECT_NAME=jupyterhub` in the file. This will define the name of the network used by the containers.
-2. Create the file `./docker-compose.yml` that specifies the hub image, mounted volumes and environment variables that will be used in `jupyterhub_config.py`:
-	- `runtime:nvidia` enables gpu support in docker
-	- `build: ./jupyterhub` Path to build when launching the application
-	- `image: jupytergpu/jupyterhub` Name of the application image after build
-	 `ports`: Maps host ports to hub ports (default is 8000:8000)
-	 `container_name`: Name of the hub container when running
-	 `volumes`: Define where to mount the host folders inside the hub container.
-	 	 - `./jupyterhub:/srv/jupyterhub` Mounts the folder containing the hub configuration to the server root folder inside the container
-		  - `/var/run/docker.sock:/var/run/docker.sock` Enables calls to docker service from inside a container, needed to spawn user containers.
-		  - Here you can define your custom volumes to be mounted to the hub container (and subsequently in the user containers via `jupyterhub_config.py`)
-	-  `environment:`
-		 - `DOCKER_JUPYTER_CONTAINER`: Name given to user containers
-		 - `DOCKER_NETWORK_NAME: ${COMPOSE_PROJECT_NAME}_default` defines the current docker network name. Uses the variable defined in `.env`
-		 - `HUB_IP: jupyterhub-container` provides the user containers the ip for the hub
+此環境並不適用於生產，因為沒有強大的安全措施 - 請自行承擔使用風險。
 
-### Configuring JupyterHub
-Get back to the `jupyterhub/jupyterhub_config.py` file for the configuration. The file has been commented for an easier understanding on what to edit in case of need.
+功能
+多用戶 JupyterLab 介面，支援 Tensorflow 和 GPU
+Hub 在 Docker 容器中運行
+每個使用者的筆記本（Lab）都在專用的 Docker 容器中啟動
+共享資料夾（例如使用者的家目錄和資料夾）被掛載到使用者的 Docker 容器，以保持資料的持久性
+預先需求
+這些套件必須安裝在主機上（目前運行 Ubuntu 20.04 LTS），套件版本表示目前已安裝的版本：
 
-The basic authenticator uses UNIX users inside the docker container for managing the password authentication. Other authenticators are available, such as GitHub Auth, please refer to Jupyterhub Documentation for advanced configuration.
+Nvidia Cuda 驅動程式（目前為 nvidia-driver-470，由 Ubuntu "Additional Drivers" 應用程式安裝）
+docker（20.10.7）
+docker-compose（1.25.0）
+nvidia-docker2（2.6.0）
+初步步驟
+在主機上創建一個新使用者（例如 jupyterhub），用於管理 JupyterHub 和存放 Hub 的配置文件。
+將您的使用者加入 docker 群組，以便在不使用 sudo 的情況下執行 docker 命令。
+通過運行 docker run --rm --gpus all nvidia/cuda:10.1-base nvidia-smi 測試 nvidia-docker 中的 GPU 是否工作。
+在主機上配置必要的共享資料夾掛載，例如 /home/jh_users/ 用於存放使用者的家目錄（我們將其與 UNIX 主機使用者分開），以及 /mnt/sdb2/ 用於共享資料（數據集、模型等）。
+配置設置環境
+環境構建為 docker-compose 應用程式。以下是複製配置的步驟。
+複製這個存儲庫或者創建一個包含設置環境的文件夾（例如 /home/jupyterhub/JupyterHubGPU/，從現在開始將其指定為根目錄）。
 
-**WARNING: Since docker-compose re-creates the container every time the configuration (i.e. docker-compose.yml or the Hub Dockerfile) changes, the current user configuration may be lost when updating the hub. This affect only login credentials and not the user files, that are permanently stored on the host**
+配置 Hub 映像
+./jupyterhub/ 包含 Hub 配置和映像。
+./jupyterhub/Dockerfile 定義了 Hub 映像。我們在這裡創建了默認的管理員 jhadmin，並設置了默認密碼。這個使用者僅存在於 Hub 容器中，可以從 Hub 控制面板中添加新使用者。我們還將工作目錄（WORKDIR）設置為 /srv/jupyterhub，並將默認命令設置為運行 Hub 服務器的 jupyterhub 命令。
+./jupyterhub/jupyterhub_config.py 描述了 JupyterHub 服務器應用程式的配置。有關詳細信息，請參閱以下各節。
+此映像的構建將由 docker-compose 完成，因此我們現在不需要手動構建它。
 
-## Running the Hub
-To run for the first time, move to the root folder and run:
-	`docker-compose up -d`
-The optional `-d` argument launches the hub as a service.
-	When run for the first time, this command will build the jupyterhub image and run the server on `<host-ip>:8000` The default login is : jhadmin, the password is defined in `./jupyterhub/Dockerfile`. 
-**WARNING**:  As soon as you run the container for the first time or after every configuration update, change the admin password to a secure one! To do so, run `docker exec -it jupyterhub-container /bin/bash` and then `passwd jhadmin` for selecting a new password.
+構建基本使用者映像
+使用者 Docker 映像基於 docker-stacks，並經過自定義以適用於 Tensorflow 和 GPU 支援。
 
-The next times the container can be started/stopped using: `docker-compose start` and `docker-compose stop` (e.g. when updating `jupyterhub_config.py`).
+tensorflow-notebook 依賴於 scipy-notebook -> minimal-notebook -> base-notebook，因此我們需要重建這個結構以添加 GPU 支援。
 
-To stop and remove the container use `docker-compose down`.
+下載 docker-stacks 存儲庫到 ./docker-stacks。
+我們需要將 Cuda 支援添加到基本映像中。由於所有筆記本映像都是基於 base-notebook，因此打開 ./docker-stacks/base-notebook/Dockerfile，並將 ROOT_CONTAINER 參數編輯為 ARG ROOT_CONTAINER=nvidia/cuda:11.4.2-cudnn8-runtime-ubuntu20.04。Cuda 映像必須與 base-notebook 的 Ubuntu 發行版（在撰寫時為 Ubuntu Focal）和 tensorflow 和您的 GPU 的要求相匹配。
+在 scipy-notebook、minimal-notebook 和 base-notebook 的 Dockerfile 中將所有者從 jupyter 改為 jupytergpu，以避免與官方映像的名稱衝突。
+依次構建這些映像（這需要一些時間）：
+cd ./docker-stacks/base-notebook/
+docker build -t "jupytergpu/base-notebook" .
+cd ../minimal-notebook/
+docker build -t "jupytergpu/minimal-notebook" .
+cd ../scipy-notebook/
+docker build -t "jupytergpu/scipy-notebook" .
+cd ../tensorflow-notebook/
+docker build -t "jupytergpu/tensorflow-notebook" .
+使用 Docker-Compose 配置 Docker 環境
+我們使用 docker-compose 來配置 docker 和容器之間的網絡。
 
-## Adding new Users
-- Run `docker exec -it jupyterhub-container /bin/bash` on the host
-- Run `adduser <username>`
-- Run `passwd <username>` and set a password
-- Open the web interface, login as an admin and in the Admin menu (top bar) add a new user `<username>`.
+在根目錄下與 docker-stacks 和 jupyterhub 文件夾一起創建一個 .env 文件。在文件中寫入項目名稱 COMPOSE_PROJECT_NAME=jupyterhub，這將定義容器使用的網絡名稱。
+創建文件 ./docker-compose.yml，指定 Hub 映像、掛載的卷和將在 jupyterhub_config.py 中使用的環境變數：
+runtime:nvidia 在 Docker 中啟用 GPU 支援
 
-## Adding new custom Docker images
-To add new images, for example for freezing specific tensorflow versions, simply copy the structure of `tensorflow-notebook` and edit the Dockerfile accordingly. Then, build the image as done in the previous section and add the image to the list in `jupyterhub_config.py`.
+build: ./jupyterhub 在啟動應用程式時構建的路徑
 
-## User environment
-The user is provided with an instance of JupyterLab, with the following folder structure:
-- ./work: The workdir that has persistance enabled - it is saved on `/home/jh_users/{username}/` on the host machine.
-- ./SHARED: The shared data folder mounted as READ-ONLY for safety - it is saved on `/mnt/sda2/` on the host machine.
+image: jupytergpu/jupyterhub 構建後的應用程式映像的名稱
 
+ports: 將主機端口映射到 Hub 端口（默認為 8000:8000）
 
-## Troubleshooting
-### A volume is mounted without permissions for the user
-The base-notebook image offer a script that fixes user permissions for a folder. However, dockerspawner creates user volume on runtime by using the root user of the container hub. This means that the "work" folder for a new user is owned by root and not by the user itself. The current workaround for this is to launch the fix-permission script after each spawn, using the hab configuration file. For the script to succeed, it is necessary that default user for the notebook container is root (and not jovyer). If you're using a custom image, make sure to set the USER as root at the end of the file (The notebook is still launched from the jovyer user and has no root access). 
+container_name: 在運行時指定 Hub 容器的名稱
 
-### A user is present on the control panel but cannot login
-The container may have been re-created, losing the UNIX PAM for that user. See "Adding new Users" and set a new password for the user.
+volumes: 定義要掛載到 Hub 容器內部的主機文件夾位置。
+- ./jupyterhub:/srv/jupyterhub 將包含 Hub 配置的文件夾掛載到容器內部的服務器根文件夾
+- /var/run/docker.sock:/var/run/docker.sock 允許從容器內部調用 docker 服務，這是在容器內部生成使用者容器所需的
+- 在這裡，您可以定義要掛載到 Hub 容器的自定義卷（並隨後通過 jupyterhub_config.py 掛載到使用者容器）
+
+environment:
+- DOCKER_JUPYTER_CONTAINER: 給使用者容器命名
+- DOCKER_NETWORK_NAME: ${COMPOSE_PROJECT_NAME}_default 定義當前 docker 網絡名稱。使用在 .env 中定義的變數
+- HUB_IP: jupyterhub-container 為使用者容器提供 Hub 的 IP
+
+配置 JupyterHub
+回到 jupyterhub/jupyterhub_config.py 文件進行配置。文件中已經進行了注釋，以便在需要時了解要編輯的內容。
+
+基本的驗證器使用 Docker 容器內部的 UNIX 使用者進行密碼驗證。還有其他可用的驗證器，例如 GitHub 認證，請參考 JupyterHub 文件進行高級配置。
+
+警告：由於 docker-compose 在配置（即 docker-compose.yml 或 Hub 的 Dockerfile）更改時會重新創建容器，因此更新 Hub 時可能會丟失當前使用者配置。這只會影響登錄憑證，而不會影響永久存儲在主機上的使用者文件
+
+運行 Hub
+首次運行時，轉到根目錄並運行：
+docker-compose up -d
+可選的 -d 參數將 Hub 作為服務運行。
+第一次運行此命令時，將構建 jupyterhub 映像並在 <host-ip>:8000 上運行服務器。默認登錄帳號為：jhadmin，密碼在 ./jupyterhub/Dockerfile 中設置。
+警告：一旦您第一次運行容器，或者每次更新配置後，請立即將管理員密碼更改為安全密碼！要這樣做，運行 docker exec -it jupyterhub-container /bin/bash，然後運行 passwd jhadmin 選擇新密碼。
+
+下次可以使用 docker-compose start 和 docker-compose stop 啟動/停止容器（例如在更新 jupyterhub_config.py 時）。
+
+要停止並移除容器，請使用 docker-compose down。
+
+添加新使用者
+在主機上運行 docker exec -it jupyterhub-container /bin/bash。
+運行 adduser <username>。
+運行 passwd <username> 並設置密碼。
+在 Web 介面中以管理員身份登錄，在管理員菜單（頂部欄）中添加新使用者 <username>。
+添加新的自定義 Docker 映像
+要添加新的映像，例如凍結特定版本的 tensorflow，只需複製 tensorflow-notebook 的結構，然後相應編輯 Dockerfile。然後，像在上一節中所做的那樣構建映像並將映像添加到 jupyterhub_config.py 中的列表中。
+
+使用者環境
+使用者可以使用 JupyterLab 的實例，並擁有以下文件夾結構：
+
+./work：啟用了持久性的工作目錄，它保存在主機機器上的 /home/jh_users/{username}/ 中。
+./SHARED：共享的數據文件夾以只讀方式掛載，它保存在主機機器上的 /mnt/sda2/ 中。
 
